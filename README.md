@@ -13,7 +13,7 @@ function sickDB:OnConnected()
   local q = self:Query('SELECT sqlite_version();')
 
   function q:OnSuccess(data)
-    print('Your beatifuly and boring MySQLite version is ' .. data[1]['sqlite_version()'])
+    print('Your beatiful and boring MySQLite version is ' .. data[1]['sqlite_version()'])
   end
 
   function q:OnError(why)
