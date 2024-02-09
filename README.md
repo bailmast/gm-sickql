@@ -1,54 +1,59 @@
 # SickQL
 
-Garry's Mod unique database control interface that supports `MySQLite`, `MySQLOO` & `TMySQL`.
+Garry's Mod database interface that supports [MySQLite](https://wiki.facepunch.com/gmod/sql), [MySQLOO](https://github.com/FredyH/MySQLOO) & [TMySQL](https://github.com/SuperiorServers/gm_tmysql4).
 
-# Usage
+## Usage
+
+[See Examples](examples/)
+
+## Functions & Methods
+
+### Database
 
 ```lua
-local sickDB = SickQL:New('MySQLite')
-
-function sickDB:OnConnected()
-  print("MySQLite is boring! But it's connected!")
-
-  local q = self:Query('SELECT sqlite_version();')
-
-  function q:OnSuccess(data)
-    print('Your beatiful and boring MySQLite version is ' .. data[1]['sqlite_version()'])
-  end
-
-  function q:OnError(why)
-    print('Something went wrong! Why: ' .. why)
-  end
-end
-
-function sickDB:OnConnectionFailed(why)
-  -- unreachable
-end
-
-sickDB:Connect()
+Database SickQL:New(string impl, string host, integer port, string username, string password, string database)
 ```
 
 ```lua
--- Same code for MySQLOO! Just don't forget to change vendor!
-local sickDB = SickQL:New('TMySQL', '127.0.0.1', 3306, 'root', 'root', 'sick')
+Database Database:Connect()
+```
 
-function sickDB:OnConnected()
-  print("TMySQL is for happy people :)")
+```lua
+Database Database:Disconnect()
+```
 
-  local q = self:Query('SELECT version();')
+```lua
+string Database:Escape(string str)
+```
 
-  function q:OnSuccess(data)
-    print("Hi! I'm TMySQL and my version is " .. data[1]['version()'])
-  end
+```lua
+Query Database:Query(string str)
+```
 
-  function q:OnError(why)
-    print('Something went wrong! Why: ' .. why)
-  end
-end
+### Query
 
-function sickDB:OnConnectionFailed(why)
-  print('Connection failed: ' .. why)
-end
+```lua
+QUERY:Start()
+```
 
-sickDB:Connect()
+## Callbacks
+
+### Database
+
+```lua
+Database:OnConnected()
+```
+
+```lua
+Database:OnConnectionFailed(string why)
+```
+
+### Query
+
+```lua
+Query:OnSuccess(table data)
+```
+
+```lua
+Query:OnError(string why)
 ```

@@ -33,7 +33,10 @@ SickQL.Implementations = SickQL.Implementations or {
       local data = res or {}
       q:OnSuccess(data)
     end,
-    Disconnect = function(vdb, conn) end
+    Disconnect = function(vdb, conn) end,
+    Escape = function(vdb, str)
+      return sql.SQLStr(str)
+    end
   },
   ['MySQLOO'] = {
     Create = function(conn)
@@ -67,6 +70,9 @@ SickQL.Implementations = SickQL.Implementations or {
     end,
     Disconnect = function(vdb, conn)
       vdb:disconnect()
+    end,
+    Escape = function(vdb, str)
+      return vdb:escape(str)
     end
   },
   ['TMySQL'] = {
@@ -108,6 +114,9 @@ SickQL.Implementations = SickQL.Implementations or {
     Disconnect = function(vdb, conn)
       hook.Remove('Think', SickQL.TMySQL_HookFormat:format(conn.TMySQLConnection))
       vdb:Disconnect()
+    end,
+    Escape = function(vdb, str)
+      return vdb:Escape(str)
     end
   }
 }
@@ -156,6 +165,13 @@ end
 ---Disconnect from database.
 function DATABASE_META:Disconnect()
   self.Implementation.Disconnect(self.VendorDatabase, self.ConnectionInfo)
+end
+
+---Escape a string using a method provided by the database vendor.
+---@param str string
+---@return string
+function DATABASE_META:Escape(str)
+  return self.Implementation.Escape(self.VendorDatabase, str)
 end
 
 local QUERY_META = {
