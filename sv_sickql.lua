@@ -1,6 +1,6 @@
 SickQL = SickQL or {}
 
-local CURRENT_VERSION = 240209.01
+local CURRENT_VERSION = 240210
 if SickQL._VERSION and (SickQL._VERSION <= CURRENT_VERSION) then return end
 SickQL._VERSION = CURRENT_VERSION
 

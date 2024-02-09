@@ -5,6 +5,7 @@ Garry's Mod database interface that supports [SQLite](https://wiki.facepunch.com
 ## Usage
 
 [See Examples](examples/)
+
 Also learn about Meta Queries from the [TMySQL example](examples/tmysql.lua)
 
 ## Functions & Methods
