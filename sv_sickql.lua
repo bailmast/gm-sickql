@@ -190,6 +190,20 @@ function DATABASE_META:Query(str)
   }, QUERY_META)
 end
 
+---@param cback fun(q: Query, data: table)
+---@return table
+function QUERY_META:SetOnSuccess(cback)
+  self.OnSuccess = cback
+  return self
+end
+
+---@param cback fun(q: Query, why: string)
+---@return table
+function QUERY_META:SetOnError(cback)
+  self.OnError = cback
+  return self
+end
+
 ---Start query itself.
 function QUERY_META:Start()
   local db = self.Database

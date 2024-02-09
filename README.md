@@ -5,6 +5,7 @@ Garry's Mod database interface that supports [SQLite](https://wiki.facepunch.com
 ## Usage
 
 [See Examples](examples/)
+Also learn about Meta Queries from the [TMySQL example](examples/tmysql.lua)
 
 ## Functions & Methods
 
@@ -33,7 +34,15 @@ Query Database:Query(string str)
 ### Query
 
 ```lua
-QUERY:Start()
+Query:SetOnSuccess(fun(Query q, table data) cback)
+```
+
+```lua
+Query:SetOnError(fun(Query q, string why) cback)
+```
+
+```lua
+Query:Start()
 ```
 
 ## Callbacks
