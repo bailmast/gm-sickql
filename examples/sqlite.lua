@@ -1,4 +1,4 @@
-local sickDB = SickQL:New('MySQLite')
+local sickDB = SickQL:New('SQLite')
 
 function sickDB:OnConnected()
   print("MySQLite is boring! But it's connected!")

@@ -1,6 +1,6 @@
 # SickQL
 
-Garry's Mod database interface that supports [MySQLite](https://wiki.facepunch.com/gmod/sql), [MySQLOO](https://github.com/FredyH/MySQLOO) & [TMySQL](https://github.com/SuperiorServers/gm_tmysql4).
+Garry's Mod database interface that supports [SQLite](https://wiki.facepunch.com/gmod/sql), [MySQLOO](https://github.com/FredyH/MySQLOO) & [TMySQL](https://github.com/SuperiorServers/gm_tmysql4).
 
 ## Usage
 

@@ -1,6 +1,6 @@
 SickQL = SickQL or {}
 
-local CURRENT_VERSION = 240209
+local CURRENT_VERSION = 240209.01
 if SickQL._VERSION and (SickQL._VERSION <= CURRENT_VERSION) then return end
 SickQL._VERSION = CURRENT_VERSION
 
@@ -16,7 +16,7 @@ if util.IsBinaryModuleInstalled('tmysql4') then
 end
 
 SickQL.Implementations = SickQL.Implementations or {
-  ['MySQLite'] = {
+  ['SQLite'] = {
     Create = function(conn)
       return nil --[[ vdb ]], nil --[[ err ]]
     end,
