@@ -1,9 +1,5 @@
 SickQL = SickQL or {}
 
-local CURRENT_VERSION = 240210
-if SickQL._VERSION and (SickQL._VERSION <= CURRENT_VERSION) then return end
-SickQL._VERSION = CURRENT_VERSION
-
 if util.IsBinaryModuleInstalled('mysqloo') then
   require('mysqloo')
 end
@@ -11,8 +7,7 @@ end
 if util.IsBinaryModuleInstalled('tmysql4') then
   require('tmysql4')
 
-  SickQL.TMySQL_HookFormat = 'SickQL::TMySQLPolling(%s)'
-  SickQL.TMySQL_LastConnection = SickQL.TMySQL_LastConnection or 0
+  SickQL.TMySQL_HookFormat = 'SickQL::TMySQLPolling(%s, %s, %s, %s, %s)' -- host, username, password, database, port
 end
 
 SickQL.Implementations = SickQL.Implementations or {
@@ -80,6 +75,13 @@ SickQL.Implementations = SickQL.Implementations or {
       return tmysql.Create(conn.Host, conn.Username, conn.Password, conn.DatabaseName, conn.Port)
     end,
     Connect = function(db)
+      local conn = db.ConnectionInfo
+      local hookTag = SickQL.TMySQL_HookFormat:format(conn.Host, conn.Username, conn.Password, conn.DatabaseName, conn.Port)
+      if hook.GetTable()['Think'][hookTag] ~= nil then
+        db:OnConnectionFailed("TMySQL can't handle multiple connections to one database!")
+        return
+      end
+
       local success, err = db.VendorDatabase:Connect()
       if not success then
         db:OnConnectionFailed(err)
@@ -88,10 +90,7 @@ SickQL.Implementations = SickQL.Implementations or {
 
       db:OnConnected()
 
-      SickQL.TMySQL_LastConnection = SickQL.TMySQL_LastConnection + 1
-      db.ConnectionInfo.TMySQLConnection = SickQL.TMySQL_LastConnection
-
-      hook.Add('Think', SickQL.TMySQL_HookFormat:format(SickQL.TMySQL_LastConnection), function()
+      hook.Add('Think', hookTag, function()
         db.VendorDatabase:Poll()
       end)
     end,
@@ -112,7 +111,7 @@ SickQL.Implementations = SickQL.Implementations or {
       end)
     end,
     Disconnect = function(vdb, conn)
-      hook.Remove('Think', SickQL.TMySQL_HookFormat:format(conn.TMySQLConnection))
+      hook.Remove('Think', SickQL.TMySQL_HookFormat:format(conn.Host, conn.Username, conn.Password, conn.DatabaseName, conn.Port))
       vdb:Disconnect()
     end,
     Escape = function(vdb, str)
