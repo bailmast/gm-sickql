@@ -133,7 +133,9 @@ function SickQL:New(impl, host, port, username, password, database)
       Username = username,
       Password = password,
       DatabaseName = database
-    }
+    },
+    OnConnected = function(db) end,
+    OnConnectionFailed = function(db, why) end
   }, DATABASE_META)
 
   local vdb, err = db.Implementation.Create(db.ConnectionInfo)
@@ -171,7 +173,9 @@ QUERY_META.__index = QUERY_META
 function DATABASE_META:Query(str)
   return setmetatable({
     String = str,
-    Database = self
+    Database = self,
+    OnSuccess = function(q, data) end,
+    OnError = function(q, why) end
   }, QUERY_META)
 end
 
