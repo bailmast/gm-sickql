@@ -7,7 +7,7 @@ end
 if util.IsBinaryModuleInstalled('tmysql4') then
   require('tmysql4')
 
-  SickQL.TMySQL_HookFormat = 'SickQL::TMySQLPolling(%s, %s, %s, %s, %s)' -- host, username, password, database, port
+  SickQL.TMySQL_HookFormat = 'SickQL::TMySQLPolling(%s:%s@%s:%s/%s)' -- {username}:{password}@{host}:{port}/{database}
 end
 
 SickQL.Implementations = SickQL.Implementations or {
@@ -18,6 +18,7 @@ SickQL.Implementations = SickQL.Implementations or {
       local res = sql.Query(q.String)
       if res == false then
         q:OnError(sql.LastError())
+
         return
       end
 
@@ -29,7 +30,13 @@ SickQL.Implementations = SickQL.Implementations or {
   },
   ['MySQLOO'] = {
     Create = function(conn)
-      return mysqloo.connect(conn.Host, conn.Username, conn.Password, conn.DatabaseName, conn.Port), nil --[[ err ]]
+      return mysqloo.connect(
+        conn.Host,
+        conn.Username,
+        conn.Password,
+        conn.DatabaseName,
+        conn.Por
+      ), nil --[[ err ]]
     end,
     Connect = function(db)
       local vdb = db.VendorDatabase
@@ -62,11 +69,24 @@ SickQL.Implementations = SickQL.Implementations or {
   },
   ['TMySQL'] = {
     Create = function(conn)
-      return tmysql.Create(conn.Host, conn.Username, conn.Password, conn.DatabaseName, conn.Port)
+      return tmysql.Create(
+        conn.Host,
+        conn.Username,
+        conn.Password,
+        conn.DatabaseName,
+        conn.Port
+      )
     end,
     Connect = function(db)
       local conn = db.ConnectionInfo
-      local hookTag = string.format(SickQL.TMySQL_HookFormat, conn.Host, conn.Username, conn.Password, conn.DatabaseName, conn.Port)
+      local hookTag = string.format(
+        SickQL.TMySQL_HookFormat,
+        conn.Username,
+        conn.Password,
+        conn.Host,
+        conn.Port,
+        conn.DatabaseName
+      )
 
       if hook.GetTable()['Think'][hookTag] ~= nil then
         db:OnConnectionFailed("TMySQL can't handle multiple connections to one database!")
@@ -104,7 +124,15 @@ SickQL.Implementations = SickQL.Implementations or {
       end)
     end,
     Disconnect = function(vdb, conn)
-      hook.Remove('Think', SickQL.TMySQL_HookFormat:format(conn.Host, conn.Username, conn.Password, conn.DatabaseName, conn.Port))
+      hook.Remove('Think', string.format(
+        SickQL.TMySQL_HookFormat,
+        conn.Username,
+        conn.Password,
+        conn.Host,
+        conn.Port,
+        conn.DatabaseName
+      ))
+
       vdb:Disconnect()
     end,
     Escape = function(vdb, str) return vdb:Escape(str) end,
@@ -135,7 +163,7 @@ function SickQL:New(impl, host, port, username, password, database)
       DatabaseName = database
     },
     OnConnected = function(db) end,
-    OnConnectionFailed = function(db, why) end
+    OnConnectionFailed = function(db, why) end,
   }, DATABASE_META)
 
   local vdb, err = db.Implementation.Create(db.ConnectionInfo)
@@ -175,7 +203,7 @@ function DATABASE_META:Query(str)
     String = str,
     Database = self,
     OnSuccess = function(q, data) end,
-    OnError = function(q, why) end
+    OnError = function(q, why) end,
   }, QUERY_META)
 end
 
