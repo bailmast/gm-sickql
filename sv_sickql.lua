@@ -145,7 +145,7 @@ DATABASE_META.__index = DATABASE_META
 --- Creates and prepares your database instance before connecting to it.
 --- @param impl string
 --- @param host? string
---- @param port? number
+--- @param port? integer
 --- @param username? string
 --- @param password? string
 --- @param database? string
