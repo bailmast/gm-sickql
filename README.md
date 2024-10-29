@@ -21,7 +21,7 @@ Database Database:Connect()
 ```
 
 ```lua
-Database Database:Disconnect()
+Database:Disconnect()
 ```
 
 ```lua
