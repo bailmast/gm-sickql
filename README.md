@@ -1,69 +1,29 @@
 # SickQL
 
-Garry's Mod database interface that supports [SQLite](https://wiki.facepunch.com/gmod/sql), [MySQLOO](https://github.com/FredyH/MySQLOO) & [TMySQL](https://github.com/SuperiorServers/gm_tmysql4).
+Garry's Mod database interface that supports [SQLite](https://wiki.facepunch.com/gmod/sql), [TMySQL](https://github.com/SuperiorServers/gm_tmysql4) & [MySQLOO](https://github.com/FredyH/MySQLOO).
 
 ## Usage
 
-[See Examples](examples/)
-
-Also learn about Meta Queries from the [TMySQL example](examples/tmysql.lua)
-
-## Functions & Methods
-
-### Database
-
 ```lua
-Database SickQL:New(string impl, string host, integer port, string username, string password, string database)
-```
+-- connection using any driver is thread-blocking
+local connection, error = SickQL.New({
+  Driver = 'tmysql', -- either sqlite, tmysql or mysqloo
+  Hostname = 'localhost',
+  Port = 3306,
+  Username = 'root',
+  Password = 'root',
+  Database = 'sys',
+})
 
-```lua
-Database Database:Connect()
-```
+if error ~= nil then
+  print('Connection failed: ' .. error)
+end
 
-```lua
-Database:Disconnect()
-```
+print('Database is connected!')
 
-```lua
-string Database:Escape(string str)
-```
-
-```lua
-Query Database:Query(string str)
-```
-
-### Query
-
-```lua
-Query:SetOnSuccess(fun(Query q, table data) cback)
-```
-
-```lua
-Query:SetOnError(fun(Query q, string why) cback)
-```
-
-```lua
-Query:Start()
-```
-
-## Callbacks
-
-### Database
-
-```lua
-Database:OnConnected()
-```
-
-```lua
-Database:OnConnectionFailed(string why)
-```
-
-### Query
-
-```lua
-Query:OnSuccess(table data)
-```
-
-```lua
-Query:OnError(string why)
+connection:Query('select version()', function(data)
+  print('Database version is ' .. data[1]['version()'])
+end, function(why)
+  print('Failed to get version from query: ' .. why)
+end)
 ```

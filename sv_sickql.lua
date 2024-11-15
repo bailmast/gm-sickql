@@ -1,231 +1,148 @@
-SickQL = SickQL or {}
-
 if util.IsBinaryModuleInstalled('mysqloo') then
   require('mysqloo')
 end
 
 if util.IsBinaryModuleInstalled('tmysql4') then
   require('tmysql4')
-
-  SickQL.TMySQL_HookFormat = 'SickQL::TMySQLPolling(%s:%s@%s:%s/%s)' -- {username}:{password}@{host}:{port}/{database}
 end
 
-SickQL.Implementations = SickQL.Implementations or {
-  ['SQLite'] = {
-    Create = function(conn) return nil --[[ vdb ]], nil --[[ err ]] end,
-    Connect = function(db) db:OnConnected() end,
-    Query = function(vdb, q)
-      local res = sql.Query(q.String)
-      if res == false then
-        q:OnError(sql.LastError())
+SickQL = SickQL or {}
+SickQL.Implementations = SickQL.Implementations or {}
 
-        return
-      end
+SickQL.Implementations['sqlite'] = SickQL.Implementations['sqlite'] or {
+  Connect = function(init)
+    return nil, nil
+  end,
+  Escape = function(string)
+    return sql.SQLStr(string, true)
+  end,
+  Query = function(driver, query, onData, onError)
+    local res = sql.Query(query)
+    if res == false then
+      onError(sql.LastError())
+      return
+    end
 
-      local data = res or {}
-      q:OnSuccess(data)
-    end,
-    Disconnect = function(vdb, conn) end,
-    Escape = function(vdb, str) return sql.SQLStr(str, true) end,
-  },
-  ['MySQLOO'] = {
-    Create = function(conn)
-      return mysqloo.connect(
-        conn.Host,
-        conn.Username,
-        conn.Password,
-        conn.DatabaseName,
-        conn.Por
-      ), nil --[[ err ]]
-    end,
-    Connect = function(db)
-      local vdb = db.VendorDatabase
-
-      function vdb:onConnected()
-        db:OnConnected()
-      end
-
-      function vdb:onConnectionFailed(why)
-        db:OnConnectionFailed(why)
-      end
-
-      vdb:connect()
-    end,
-    Query = function(vdb, q)
-      local vq = vdb:query(q.String)
-
-      function vq:onSuccess(data)
-        q:OnSuccess(data)
-      end
-
-      function vq:onError(why)
-        q:OnError(why)
-      end
-
-      vq:start()
-    end,
-    Disconnect = function(vdb, conn) vdb:disconnect() end,
-    Escape = function(vdb, str) return vdb:escape(str) end,
-  },
-  ['TMySQL'] = {
-    Create = function(conn)
-      return tmysql.Create(
-        conn.Host,
-        conn.Username,
-        conn.Password,
-        conn.DatabaseName,
-        conn.Port
-      )
-    end,
-    Connect = function(db)
-      local conn = db.ConnectionInfo
-      local hookTag = string.format(
-        SickQL.TMySQL_HookFormat,
-        conn.Username,
-        conn.Password,
-        conn.Host,
-        conn.Port,
-        conn.DatabaseName
-      )
-
-      if hook.GetTable()['Think'][hookTag] ~= nil then
-        db:OnConnectionFailed("TMySQL can't handle multiple connections to one database!")
-
-        return
-      end
-
-      local success, err = db.VendorDatabase:Connect()
-      if not success then
-        db:OnConnectionFailed(err)
-
-        return
-      end
-
-      db:OnConnected()
-
-      hook.Add('Think', hookTag, function() db.VendorDatabase:Poll() end)
-    end,
-    Query = function(vdb, q)
-      vdb:Query(q.String, function(res)
-        res = res[1]
-        if res == nil then
-          q:OnError('Result is nil!')
-
-          return
-        end
-
-        if res.error ~= nil then
-          q:OnError(res.error)
-
-          return
-        end
-
-        q:OnSuccess(res.data)
-      end)
-    end,
-    Disconnect = function(vdb, conn)
-      hook.Remove('Think', string.format(
-        SickQL.TMySQL_HookFormat,
-        conn.Username,
-        conn.Password,
-        conn.Host,
-        conn.Port,
-        conn.DatabaseName
-      ))
-
-      vdb:Disconnect()
-    end,
-    Escape = function(vdb, str) return vdb:Escape(str) end,
-  }
+    local data = res or {}
+    onData(data)
+  end,
+  Disconnect = function(driver) end,
 }
 
-local DATABASE_META = {}
-DATABASE_META.__index = DATABASE_META
+SickQL.Implementations['tmysql'] = SickQL.Implementations['tmysql'] or {
+  Connect = function(init)
+    local connection, error = tmysql.Connect(
+      init.Hostname,
+      init.Username,
+      init.Password,
+      init.Database,
+      init.Port
+    )
 
---- Creates and prepares your database instance before connecting to it.
---- @param impl string
---- @param host? string
---- @param port? integer
---- @param username? string
---- @param password? string
---- @param database? string
---- @return table
---- @return string?
-function SickQL:New(impl, host, port, username, password, database)
-  local db = setmetatable({
-    Implementation = self.Implementations[impl],
-    VendorDatabase = nil,
-    ConnectionInfo = {
-      Host = host,
-      Port = port,
-      Username = username,
-      Password = password,
-      DatabaseName = database
-    },
-    OnConnected = function(db) end,
-    OnConnectionFailed = function(db, why) end,
-  }, DATABASE_META)
+    if error then
+      return nil, error
+    end
 
-  local vdb, err = db.Implementation.Create(db.ConnectionInfo)
-  db.VendorDatabase = vdb
+    hook.Add('Think', string.format('SickQL::TMySQLPolling(%s)', connection), function()
+      connection:Poll()
+    end)
 
-  return db, err
+    return connection, nil
+  end,
+  Escape = function(driver, string)
+    return driver:Escape(string)
+  end,
+  Query = function(driver, query, onData, onError)
+    driver:Query(query, function(res)
+      res = res[1]
+
+      if res.status == true then
+        onData(res.data)
+      else
+        onError(res.error)
+      end
+    end)
+  end,
+  Disconnect = function(driver)
+    driver:Disconnect()
+  end,
+}
+
+SickQL.Implementations['mysqloo'] = SickQL.Implementations['mysqloo'] or {
+  Connect = function(init)
+    local db = mysqloo.connect(
+      init.Hostname,
+      init.Username,
+      init.Password,
+      init.Database,
+      init.Port
+    )
+
+    local err
+    function db:onConnectionFailed(why)
+      err = why
+    end
+
+    db:connect()
+    db:wait()
+
+    if db:status() == mysqloo.DATABASE_CONNECTED then
+      return db, nil
+    else
+      return nil, err
+    end
+  end,
+  Escape = function(driver, string)
+    return driver:escape(string)
+  end,
+  Query = function(driver, query, onData, onError)
+    local q = driver:query(query)
+
+    function q:onSuccess(data)
+      onData(data)
+    end
+
+    function q:onError(why)
+      onError(why)
+    end
+
+    q:start()
+  end,
+  Disconnect = function(driver)
+    driver:disconnect()
+  end,
+}
+
+local CONNECTION_META = {}
+CONNECTION_META.__index = CONNECTION_META
+
+function CONNECTION_META:Escape(string)
+  return self.impl.Escape(self.driver, string)
 end
 
---- Connect database itself.
---- @return table
-function DATABASE_META:Connect()
-  self.Implementation.Connect(self)
-
-  return self
+function CONNECTION_META:Query(query, onData, onError)
+  onData = onData or function() end
+  onError = onError or function() end
+  return self.impl.Query(self.driver, query, onData, onError)
 end
 
---- Disconnect from database.
-function DATABASE_META:Disconnect()
-  self.Implementation.Disconnect(self.VendorDatabase, self.ConnectionInfo)
+function CONNECTION_META:Disconnect()
+  self.impl.Disconnect(self.driver)
 end
 
---- Escape a string using a method provided by the database vendor.
---- @param str string
---- @return string
-function DATABASE_META:Escape(str)
-  return self.Implementation.Escape(self.VendorDatabase, str)
-end
+function SickQL.New(init)
+  local impl = SickQL.Implementations[init.Driver:lower()]
+  if impl == nil then
+    return nil, 'No such SickQL implementation!'
+  end
 
-local QUERY_META = {}
-QUERY_META.__index = QUERY_META
+  local driver, error = impl.Connect(init)
+  if error ~= nil then
+    return nil, error
+  end
 
---- Prepare query so you can change `OnSuccess` and `OnError` functions.
---- @param str string
---- @return table
-function DATABASE_META:Query(str)
   return setmetatable({
-    String = str,
-    Database = self,
-    OnSuccess = function(q, data) end,
-    OnError = function(q, why) end,
-  }, QUERY_META)
-end
-
---- @param cback fun(q: Query, data: table)
---- @return table
-function QUERY_META:SetOnSuccess(cback)
-  self.OnSuccess = cback
-
-  return self
-end
-
---- @param cback fun(q: Query, why: string)
---- @return table
-function QUERY_META:SetOnError(cback)
-  self.OnError = cback
-
-  return self
-end
-
---- Start query itself.
-function QUERY_META:Start()
-  local db = self.Database
-
-  db.Implementation.Query(db.VendorDatabase, self)
+    impl = impl,
+    driver = driver,
+  }, CONNECTION_META)
 end
