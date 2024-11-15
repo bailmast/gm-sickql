@@ -35,7 +35,7 @@ SickQL.Implementations = SickQL.Implementations or {
         conn.Username,
         conn.Password,
         conn.DatabaseName,
-        conn.Por
+        conn.Port
       ), nil --[[ err ]]
     end,
     Connect = function(db)
