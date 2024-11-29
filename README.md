@@ -6,7 +6,7 @@ Garry's Mod database interface that supports [SQLite](https://wiki.facepunch.com
 
 ```lua
 -- connection using any driver is thread-blocking
-local connection, error = SickQL.New({
+local connection, err = SickQL.New({
   Driver = 'tmysql', -- either sqlite, tmysql or mysqloo
   Hostname = 'localhost',
   Port = 3306,
@@ -15,8 +15,8 @@ local connection, error = SickQL.New({
   Database = 'sys',
 })
 
-if error ~= nil then
-  print('Connection failed: ' .. error)
+if err ~= nil then
+  print('Connection failed: ' .. err)
 end
 
 print('Database is connected!')
