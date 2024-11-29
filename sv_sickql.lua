@@ -8,7 +8,7 @@
 
 ---@class SickQLConnection
 ---@field Escape fun(self, string: string): string
----@field Query fun(self, query: string, onData: fun(data: table<string, string>), onError: fun(why: string))
+---@field Query fun(self, query: string, onData?: fun(data: (table<string, string>)[]), onError?: fun(why: string))
 ---@field Disconnect fun(self)
 
 if util.IsBinaryModuleInstalled('mysqloo') then
