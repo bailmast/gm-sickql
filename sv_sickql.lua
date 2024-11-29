@@ -1,3 +1,16 @@
+---@class SickQLInit
+---@field Driver    'sqlite' | 'tmysql' | 'mysqloo' | string
+---@field Hostname? string
+---@field Username? string
+---@field Password? string
+---@field Database? string
+---@field Port?     integer
+
+---@class SickQLConnection
+---@field Escape fun(self, string: string): string
+---@field Query fun(self, query: string, onData: fun(data: table<string, string>), onError: fun(why: string))
+---@field Disconnect fun(self)
+
 if util.IsBinaryModuleInstalled('mysqloo') then
   require('mysqloo')
 end
@@ -9,7 +22,26 @@ end
 SickQL = SickQL or {}
 SickQL.Implementations = SickQL.Implementations or {}
 
-SickQL.Implementations['sqlite'] = SickQL.Implementations['sqlite'] or {
+---@param init SickQLInit
+---@return SickQLConnection | nil, string | nil
+function SickQL.New(init)
+  local impl = SickQL.Implementations[init.Driver:lower()]
+  if impl == nil then
+    return nil, 'No such SickQL implementation!'
+  end
+
+  local driver, err = impl.Connect(init)
+  if err ~= nil then
+    return nil, err
+  end
+
+  return setmetatable({
+    impl = impl,
+    driver = driver,
+  }, SickQL.CONNECTION_META), nil
+end
+
+SickQL.Implementations['sqlite'] = {
   Connect = function(init)
     return nil, nil
   end,
@@ -29,9 +61,9 @@ SickQL.Implementations['sqlite'] = SickQL.Implementations['sqlite'] or {
   Disconnect = function(driver) end,
 }
 
-SickQL.Implementations['tmysql'] = SickQL.Implementations['tmysql'] or {
+SickQL.Implementations['tmysql'] = {
   Connect = function(init)
-    local connection, error = tmysql.Connect(
+    local connection, err = tmysql.Connect(
       init.Hostname,
       init.Username,
       init.Password,
@@ -39,8 +71,8 @@ SickQL.Implementations['tmysql'] = SickQL.Implementations['tmysql'] or {
       init.Port
     )
 
-    if error then
-      return nil, error
+    if err ~= nil then
+      return nil, err
     end
 
     hook.Add('Think', string.format('SickQL::TMySQLPolling(%s)', connection), function()
@@ -68,7 +100,7 @@ SickQL.Implementations['tmysql'] = SickQL.Implementations['tmysql'] or {
   end,
 }
 
-SickQL.Implementations['mysqloo'] = SickQL.Implementations['mysqloo'] or {
+SickQL.Implementations['mysqloo'] = {
   Connect = function(init)
     local db = mysqloo.connect(
       init.Hostname,
@@ -130,19 +162,4 @@ function CONNECTION_META:Disconnect()
   self.impl.Disconnect(self.driver)
 end
 
-function SickQL.New(init)
-  local impl = SickQL.Implementations[init.Driver:lower()]
-  if impl == nil then
-    return nil, 'No such SickQL implementation!'
-  end
-
-  local driver, error = impl.Connect(init)
-  if error ~= nil then
-    return nil, error
-  end
-
-  return setmetatable({
-    impl = impl,
-    driver = driver,
-  }, CONNECTION_META)
-end
+SickQL.CONNECTION_META = CONNECTION_META
